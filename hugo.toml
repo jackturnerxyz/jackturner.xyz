@@ -1,0 +1,4 @@
+baseURL = 'jackturner.xyz'
+languageCode = 'en-us'
+title = "Jack's Site"
+theme="jtheme"
