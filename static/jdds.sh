@@ -27,9 +27,13 @@ mkdir -p ~/.local/share/fonts
 unzip JetBrainsMono.zip -d ~/.local/share/fonts
 
 # Oh my ZSH
+wget https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh
+chmod +x install.sh
+CHSH='no' RUNZSH='no' KEEP_ZSHRC='yes' ./install.sh
+
 cd
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
 git clone https://github.com/zsh-users/zsh-syntax-highlighting.git $ZSH_CUSTOM/plugins/zsh-syntax-highlighting
+git clone https://github.com/zsh-users/zsh-autosuggestions.git $ZSH_CUSTOM/plugins/zsh-autosuggestions
 
 # Install dep
 #wallpaper
