@@ -6,6 +6,8 @@ SUDO_PROGRAM="sudo" # alternative: "doas"
 
 dep_pkgs_pacman="hyprland waybar git mpd mpc ncmpcpp zsh neovim rofi btop glow zathura hyprpaper pipewire pipewire-pulse pipewire-jack pulsemixer foot firefox wget unzip wl-clipboard"
 
+$SUDO_PROGRAM pacman -S $dep_pkgs_pacman
+
 tmp_install_dir=$(mktemp -d /tmp/jdds.XXXX)
 cd $tmp_install_dir
 
@@ -30,7 +32,6 @@ sh -c "$(curl -fsSL https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/mas
 git clone https://github.com/zsh-users/zsh-syntax-highlighting.git $ZSH_CUSTOM/plugins/zsh-syntax-highlighting
 
 # Install dep
-$SUDO_PROGRAM pacman -S $dep_pkgs_pacman
 #wallpaper
 cd $tmp_install_dir 
 cp dotfiles/bg.jpg ~/
