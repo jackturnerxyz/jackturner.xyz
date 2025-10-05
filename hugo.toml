@@ -1,4 +1,4 @@
-baseURL = 'jackturner.xyz'
+baseURL = 'https://jackturner.xyz'
 languageCode = 'en-us'
 title = "Jack's Site"
-theme="jtheme"
+theme="j-mini"

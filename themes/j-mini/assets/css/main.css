@@ -1,0 +1,99 @@
+body {
+  background-color: #151515;
+  color: #222;
+  font-family: sans-serif;
+  line-height: 1.5;
+  margin: 1rem;
+}
+.titleh {
+  text-align: center; 
+  color: lime;
+}
+
+.upd {
+  color: white;
+  text-align: center;
+}
+header {
+  text-align: center;
+  color: yellow;
+}
+
+h1  {
+  color: yellow;
+}
+hr {
+  width: 50%;
+}
+footer {
+  border-top: 1px solid #222;
+  margin-top: 1rem;
+}
+
+a {
+  color: #00e;
+  text-decoration: none;
+}
+.postbox h2 {
+	font-size: 16px;
+	margin-bottom: 0px;
+
+}
+.postbox a {
+	color: yellow;
+}
+a:hover {
+	text-decoration: underline;
+}
+.postbox dd {
+	color: lime;
+
+}
+p {
+	color: white;
+
+}
+h2 {
+  color: lime;
+}
+.h2c {
+	text-align: center;
+	color: yellow;
+}
+
+.social {
+	margin-left: auto;
+	margin-right: auto;
+}
+.social tr td {
+	color: lime;
+	border: 2px solid white;
+	text-align: center;
+
+}
+.social tr td a {
+	color: yellow;
+}
+
+.social tr td a:hover {
+	text-decoration: underline;
+}
+
+.postbox {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-direction: column;
+	gap: 0;
+}
+.pintro {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+.profile-pic {
+	max-width: 10%;
+	display: block;
+	margin: auto;
+	border-radius: 10%;
+}

@@ -1,0 +1,8 @@
+baseURL = 'https://jackturner.xyz/'
+languageCode = 'en-US'
+title = "Jack's Site"
+
+[module]
+  [module.hugoVersion]
+    extended = false
+    min = '0.146.0'

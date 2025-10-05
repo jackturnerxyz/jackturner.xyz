@@ -2,6 +2,7 @@
 date = '2025-09-14T23:00:20-04:00'
 draft = false
 title = 'My Faith'
+summary = 'I am Catholic. Here are some beliefs that I profess.'
 +++
 
 # My Core Beliefs

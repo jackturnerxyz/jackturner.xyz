@@ -1,0 +1,33 @@
+{{ define "main" }}
+  <img class="profile-pic" src="/img/jackturner.jpg" alt="">
+  <div class="intro">
+	  	  {{ .Content }}
+  </div>
+
+  <h2 class="h2c">Links</h2>
+
+  <table class="social">
+  	<tr>
+  		<td><a href="https://www.youtube.com/@jacksystems/videos">YouTube</a></td>
+		<td>My YouTube Channel</td>
+  	</tr>
+	<tr>
+
+		<td><a href="https://github.com/jackturnerxyz">GitHub</a></td>
+		<td>Find all of my code</td>
+	</tr>
+	<tr>
+		<td><a href="https://x.com/TurnerJackt/">X</a></td class="social">
+		<td>I rarely post</td>
+	</tr>
+  </table>
+
+
+   <div class="postbox">
+	  <h2>Posts</h2>
+	  {{ range site.RegularPages }}
+	  	<a href="{{ .RelPermalink }}">{{ .LinkTitle }}</a>
+		<dd>{{ .Summary }}</dd>
+	  {{ end }}
+  </div>
+{{ end }}
