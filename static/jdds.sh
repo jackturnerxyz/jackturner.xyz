@@ -2,7 +2,7 @@
 # J.D.D.S. - Jack's Dotfile Deployment Script for Arch GNU/Linux
 #
 # Enhanced and optimized for robustness, readability, and user experience.
-# Version 2: Added SDDM and Paru (AUR helper) installation.
+# Version 4: Automatically installs missing base commands (git, wget, etc.).
 
 # ---
 # Exit on error, treat unset variables as an error, and ensure pipelines fail on error.
@@ -21,36 +21,16 @@ readonly AUR_HELPER_REPO="https://aur.archlinux.org/paru.git"
 # Packages required for the setup
 readonly PACMAN_PACKAGES=(
     # Core environment & Display Manager
-    hyprland
-    waybar
-    git
-    zsh
-    neovim
-    foot
-    firefox
-    sddm
+    hyprland waybar git zsh neovim foot firefox sddm
 
     # Build tools for AUR
     base-devel
 
     # Utilities
-    rofi
-    btop
-    glow
-    zathura
-    hyprpaper
-    wget
-    unzip
-    wl-clipboard
+    rofi btop glow zathura hyprpaper wget unzip wl-clipboard
 
     # Audio
-    mpd
-    mpc
-    ncmpcpp
-    pipewire
-    pipewire-pulse
-    pipewire-jack
-    pulsemixer
+    mpd mpc ncmpcpp pipewire pipewire-pulse pipewire-jack pulsemixer
 )
 
 # ---
@@ -86,50 +66,73 @@ error() {
 # Main Logic Functions
 # ---
 
-# Function to check for essential commands
+# Function to check for and install missing base commands
 check_dependencies() {
-    info "Checking for required commands..."
-    local missing_deps=0
-    for cmd in git wget unzip pacman; do
+    info "Checking for required base commands..."
+    # If pacman isn't available, we can't do anything. This is a fatal error.
+    if ! command -v pacman &>/dev/null; then
+        error "'pacman' command not found. This script is designed for Arch Linux."
+    fi
+
+    local missing_pkgs=()
+    # For these packages, the command name is the same as the package name.
+    local core_commands=("git" "wget" "unzip")
+
+    for cmd in "${core_commands[@]}"; do
         if ! command -v "$cmd" &>/dev/null; then
-            echo -e "${C_RED}- $cmd is not found.${C_RESET}"
-            missing_deps=1
-        else
-            echo -e "${C_GREEN}- $cmd is present.${C_RESET}"
+            missing_pkgs+=("$cmd")
         fi
     done
 
-    if [[ "$missing_deps" -eq 1 ]]; then
-        error "Please install the missing commands before running this script."
+    if [ ${#missing_pkgs[@]} -gt 0 ]; then
+        warn "The following essential commands are missing and will be installed: ${missing_pkgs[*]}"
+        $SUDO_PROGRAM pacman -Syu --needed --noconfirm "${missing_pkgs[@]}"
+        success "Missing base commands have been installed."
+    else
+        success "All base commands are present."
     fi
 }
 
-# Function to install packages using pacman
+# Function to install pacman packages only if they are not already installed
 install_packages() {
-    info "Installing required packages with pacman..."
-    # Using --needed ensures we don't reinstall packages that are already up to date.
-    $SUDO_PROGRAM pacman -Syu --needed --noconfirm "${PACMAN_PACKAGES[@]}"
-    success "Package installation complete."
+    info "Checking for required pacman packages..."
+    local packages_to_install=()
+    for pkg in "${PACMAN_PACKAGES[@]}"; do
+        # pacman -Q returns a non-zero exit code if the package is not found
+        if ! pacman -Q "$pkg" &>/dev/null; then
+            packages_to_install+=("$pkg")
+        fi
+    done
+
+    if [ ${#packages_to_install[@]} -gt 0 ]; then
+        info "The following packages need to be installed:"
+        printf "  - %s\n" "${packages_to_install[@]}"
+        
+        # Using --needed tells pacman to skip packages that are already installed.
+        $SUDO_PROGRAM pacman -Syu --needed --noconfirm "${packages_to_install[@]}"
+        success "Missing packages have been installed."
+    else
+        success "All required pacman packages are already installed. Syncing repositories..."
+        $SUDO_PROGRAM pacman -Syyu --noconfirm
+    fi
 }
+
 
 # Function to install an AUR helper (paru)
 install_aur_helper() {
-    info "Setting up AUR helper (paru)..."
+    info "Checking for AUR helper (paru)..."
     if command -v paru &>/dev/null; then
         success "AUR helper (paru) is already installed."
         return
     fi
 
-    info "Paru not found. Building from AUR..."
-    # makepkg must not be run as root. This script assumes it's run by a user with sudo privileges.
+    info "Paru not found. Building and installing from AUR..."
     local build_dir
     build_dir=$(mktemp -d)
 
     git clone "$AUR_HELPER_REPO" "$build_dir"
     (
         cd "$build_dir" || exit
-        # Build and install the package. -s installs dependencies, -i installs the package.
-        # --noconfirm automates the "yes" prompts for both dependency installation and final package install.
         makepkg -si --noconfirm
     )
 
@@ -142,9 +145,7 @@ setup_dotfiles() {
     git clone "$DOTFILES_REPO" dotfiles
 
     info "Setting up configuration directories..."
-    mkdir -p "$HOME/.config"
-    mkdir -p "$HOME/.local/bin"
-    mkdir -p "$HOME/.local/share/fonts"
+    mkdir -p "$HOME/.config" "$HOME/.local/bin" "$HOME/.local/share/fonts"
 
     info "Copying configuration files..."
     cp -r dotfiles/.config/* "$HOME/.config/"
@@ -153,7 +154,6 @@ setup_dotfiles() {
     cp dotfiles/.zshrc dotfiles/.zprofile "$HOME/"
 
     info "Copying local binaries..."
-    # Corrected the typo 'dotfile' to 'dotfiles' and ensure scripts are executable
     if [ -d "dotfiles/.local/bin" ] && [ -n "$(ls -A dotfiles/.local/bin)" ]; then
         cp dotfiles/.local/bin/* "$HOME/.local/bin/"
         chmod +x "$HOME"/.local/bin/*
@@ -170,6 +170,12 @@ setup_dotfiles() {
 
 # Function to download and install fonts
 install_fonts() {
+    info "Checking for JetBrains Mono Nerd Font..."
+    if fc-list | grep -q "JetBrainsMono Nerd Font"; then
+        success "JetBrains Mono Nerd Font is already installed."
+        return
+    fi
+    
     info "Downloading and installing JetBrains Mono Nerd Font..."
     wget -O "$FONT_ZIP_NAME" "$FONT_URL"
     unzip -o "$FONT_ZIP_NAME" -d "$HOME/.local/share/fonts"
@@ -182,26 +188,37 @@ install_fonts() {
 
 # Function to install Oh My Zsh and plugins
 setup_zsh() {
-    info "Installing Oh My Zsh..."
-    # The installer is downloaded and run non-interactively
-    wget -O install-omz.sh https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh
-    chmod +x install-omz.sh
-    # KEEP_ZSHRC prevents overwriting our .zshrc; RUNZSH=no prevents it from launching a new shell
-    KEEP_ZSHRC='yes' RUNZSH='no' ./install-omz.sh
+    info "Checking for Oh My Zsh..."
+    if [ -d "$HOME/.oh-my-zsh" ]; then
+        success "Oh My Zsh is already installed."
+    else
+        info "Installing Oh My Zsh..."
+        wget -O install-omz.sh https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh
+        KEEP_ZSHRC='yes' RUNZSH='no' CHSH='no' sh install-omz.sh
+        success "Oh My Zsh has been installed."
+    fi
 
     info "Installing Zsh plugins..."
     local zsh_custom="$HOME/.oh-my-zsh/custom"
-    git clone https://github.com/zsh-users/zsh-syntax-highlighting.git "${zsh_custom}/plugins/zsh-syntax-highlighting"
-    git clone https://github.com/zsh-users/zsh-autosuggestions.git "${zsh_custom}/plugins/zsh-autosuggestions"
-
-    success "Oh My Zsh and plugins are installed."
+    if [ ! -d "${zsh_custom}/plugins/zsh-syntax-highlighting" ]; then
+        git clone https://github.com/zsh-users/zsh-syntax-highlighting.git "${zsh_custom}/plugins/zsh-syntax-highlighting"
+    fi
+    if [ ! -d "${zsh_custom}/plugins/zsh-autosuggestions" ]; then
+        git clone https://github.com/zsh-users/zsh-autosuggestions.git "${zsh_custom}/plugins/zsh-autosuggestions"
+    fi
+    success "Zsh plugins are configured."
 }
 
 # Function to enable the display manager
 setup_display_manager() {
-    info "Enabling the SDDM display manager..."
-    $SUDO_PROGRAM systemctl enable sddm.service
-    success "SDDM has been enabled. It will start on the next boot."
+    info "Checking SDDM service status..."
+    if systemctl is-enabled --quiet sddm.service; then
+        success "SDDM service is already enabled."
+    else
+        info "Enabling the SDDM display manager..."
+        $SUDO_PROGRAM systemctl enable sddm.service
+        success "SDDM has been enabled. It will start on the next boot."
+    fi
 }
 
 
@@ -209,12 +226,8 @@ setup_display_manager() {
 # Main Execution
 # ---
 main() {
-    # Create a temporary directory for all operations
-    # The 'trap' command ensures this directory is cleaned up on script exit (success or failure)
     TMP_DIR=$(mktemp -d /tmp/jdds.XXXXXX)
     trap 'info "Cleaning up temporary directory..."; rm -rf -- "$TMP_DIR"' EXIT
-
-    # Move to the temporary directory
     cd "$TMP_DIR"
 
     check_dependencies
@@ -225,34 +238,29 @@ main() {
     setup_zsh
     setup_display_manager
 
-    # Final steps
     info "Changing default shell to Zsh. You may be prompted for your password."
-    if chsh -s /bin/zsh; then
-        success "Default shell changed to /bin/zsh."
+    if [[ "$SHELL" != "/bin/zsh" ]]; then
+        if chsh -s /bin/zsh; then
+            success "Default shell changed to /bin/zsh."
+        else
+            error "Failed to change shell. Please run 'chsh -s /bin/zsh' manually."
+        fi
     else
-        error "Failed to change shell. Please run 'chsh -s /bin/zsh' manually."
+        success "Default shell is already Zsh."
     fi
 
     echo
     success "All tasks completed!"
-    warn "A reboot is required for the new display manager (SDDM) and shell changes to take full effect."
+    warn "A reboot is recommended for all changes to take full effect."
 }
 
 # ---
 # Script entry point
 # ---
 
-# Ask for confirmation before proceeding
-echo "J.D.D.S. - Jack's Dotfile Deployment Script (v2)"
+echo "J.D.D.S. - Jack's Dotfile Deployment Script (v4)"
 echo "------------------------------------------------"
-echo "This script will:"
-echo "  1. Install packages (including sddm) via pacman."
-echo "  2. Build and install 'paru' (AUR helper)."
-echo "  3. Clone dotfiles from ${DOTFILES_REPO} and deploy them."
-echo "  4. Install the JetBrains Mono Nerd Font."
-echo "  5. Install Oh My Zsh and selected plugins."
-echo "  6. Enable the SDDM login manager."
-echo "  7. Change your default shell to Zsh."
+echo "This script will check for and install missing components for a complete desktop setup."
 echo
 read -p "Do you want to proceed? (y/N): " choice
 case "$choice" in
